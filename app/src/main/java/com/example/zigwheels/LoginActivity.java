@@ -26,12 +26,14 @@ import java.util.regex.Pattern;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class LoginActivity extends AppCompatActivity {
 
     TextView textCreateAccount;
-    TextInputEditText inputEmail,inputPassword;
+    TextInputEditText inputEmail, inputPassword;
     Button buttonLogin;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,96 +41,92 @@ public class LoginActivity extends AppCompatActivity {
 
         textCreateAccount = findViewById(R.id.text_create_account);
         textCreateAccount.setPaintFlags(textCreateAccount.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
-        inputPassword =findViewById(R.id.input_password);
-        buttonLogin =findViewById(R.id.btn_login);
-        inputEmail=findViewById(R.id.input_email_login);
+        inputPassword = findViewById(R.id.input_password);
+        buttonLogin = findViewById(R.id.btn_login);
+        inputEmail = findViewById(R.id.input_email_login);
         textCreateAccount.setOnClickListener(new View.OnClickListener() {
 
             public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(),RegistrationActivity.class));
+                startActivity(new Intent(getApplicationContext(), RegistrationActivity.class));
             }
         });
         findViewById(R.id.text_Forgot).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(),ResetPass.class));
+                startActivity(new Intent(getApplicationContext(), ResetPass.class));
             }
         });
         buttonLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                if(inputEmail.getText().toString().equals(""))
-                {
-                    Toast.makeText(getApplicationContext(),"Please enter email",Toast.LENGTH_LONG).show();
-                }else  if(!emilValidator(inputEmail.getText().toString()))
-                {
-                    Toast.makeText(getApplicationContext(),"Please enter valid email",Toast.LENGTH_LONG).show();
-                }else  if(inputPassword.getText().toString().equals(""))
-                {
-                    Toast.makeText(getApplicationContext(),"Please enter password",Toast.LENGTH_LONG).show();
-                }else{
+                if (inputEmail.getText().toString().equals("")) {
+                    Toast.makeText(getApplicationContext(), "Please enter email", Toast.LENGTH_LONG).show();
+                } else if (!emilValidator(inputEmail.getText().toString())) {
+                    Toast.makeText(getApplicationContext(), "Please enter valid email", Toast.LENGTH_LONG).show();
+                } else if (inputPassword.getText().toString().equals("")) {
+                    Toast.makeText(getApplicationContext(), "Please enter password", Toast.LENGTH_LONG).show();
+                } else {
                     login();
-
                 }
             }
         });
-
-
     }
-    private void login(){
 
-        ProgressDialog progressDialog = new ProgressDialog( LoginActivity.this);
+    private void login() {
+
+        ProgressDialog progressDialog = new ProgressDialog(LoginActivity.this);
         progressDialog.setTitle("Please wait ");
         progressDialog.setMessage("Logging...");
         progressDialog.setCancelable(false);
         progressDialog.show();
 
+        // Get email and password from EditText fields
+        String email = inputEmail.getText().toString();
+        String password = inputPassword.getText().toString();
+
         NetworkService networkService = NetworkClient.getClient().create(NetworkService.class);
-        Call<LoginResponseModel> login = networkService.login(inputEmail.getText().toString(),inputPassword.getText().toString());
+        Call<LoginResponseModel> login = networkService.login(email,password);
         login.enqueue(new Callback<LoginResponseModel>() {
             @Override
-            public void onResponse(@NonNull Call<LoginResponseModel> call,@NonNull Response<LoginResponseModel> response) {
+            public void onResponse(@NonNull Call<LoginResponseModel> call, @NonNull Response<LoginResponseModel> response) {
                 LoginResponseModel responseBody = response.body();
-                if(responseBody != null)
-                {
-                    if(responseBody.getSuccess().equals("1")){
+                if (responseBody != null) {
+                    if (responseBody.getSuccess().equals("1")) {
 
-                        SharedPreferences preferences = getSharedPreferences(Constants.PREFERENCE_NAME,MODE_PRIVATE);
-                        SharedPreferences.Editor editor =preferences.edit();
-                        editor.putBoolean(Constants.KEY_ISE_LOGGED_IN,true);
-                        editor.putString(Constants.KEY_USERNAME,responseBody.getUserDetailObject().getUserDetail().get(0).getFirstname()+" "+responseBody.getUserDetailObject().getUserDetail().get(0).getLastname());
-                        editor.putString(Constants.KEY_EMAIL,responseBody.getUserDetailObject().getUserDetail().get(0).getEmail());
-                        editor.putString(Constants.KEY_MOBILE,responseBody.getUserDetailObject().getUserDetail().get(0).getMobile());
-                        editor.putString(Constants.KEY_ADD,responseBody.getUserDetailObject().getUserDetail().get(0).getAddress()+","+responseBody.getUserDetailObject().getUserDetail().get(0).getCity()+","+responseBody.getUserDetailObject().getUserDetail().get(0).getState()+","+responseBody.getUserDetailObject().getUserDetail().get(0).getCountry());
+                        SharedPreferences preferences = getSharedPreferences(Constants.PREFERENCE_NAME, MODE_PRIVATE);
+                        SharedPreferences.Editor editor = preferences.edit();
+                        editor.putBoolean(Constants.KEY_ISE_LOGGED_IN, true);
+                        editor.putString(Constants.KEY_USERNAME, responseBody.getUserDetailObject().getUserDetail().get(0).getFirstname() + " " + responseBody.getUserDetailObject().getUserDetail().get(0).getLastname());
+                        editor.putString(Constants.KEY_EMAIL, responseBody.getUserDetailObject().getUserDetail().get(0).getEmail());
+                        editor.putString(Constants.KEY_MOBILE, responseBody.getUserDetailObject().getUserDetail().get(0).getMobile());
+                        editor.putString(Constants.KEY_ADD, responseBody.getUserDetailObject().getUserDetail().get(0).getAddress() + "," + responseBody.getUserDetailObject().getUserDetail().get(0).getCity() + "," + responseBody.getUserDetailObject().getUserDetail().get(0).getState() + "," + responseBody.getUserDetailObject().getUserDetail().get(0).getCountry());
                         editor.apply();
 
-                        Toast.makeText(LoginActivity.this,responseBody.getMessage(),Toast.LENGTH_LONG).show();
-                        startActivity(new Intent(LoginActivity.this,DashboardActivity.class));
+                        Toast.makeText(LoginActivity.this, responseBody.getMessage(), Toast.LENGTH_LONG).show();
+                        startActivity(new Intent(LoginActivity.this, DashboardActivity.class));
                         finish();
+                    } else {
+                        Toast.makeText(LoginActivity.this, responseBody.getMessage(), Toast.LENGTH_LONG).show();
                     }
-                    else {
-                        Toast.makeText(LoginActivity.this,responseBody.getMessage(),Toast.LENGTH_LONG).show();
-                    }
-                }
-                else
-                {
-                    Toast.makeText(LoginActivity.this,"else",Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(LoginActivity.this, "else", Toast.LENGTH_LONG).show();
 
                 }
                 progressDialog.dismiss();
             }
-            @Override
-            public void onFailure(@NonNull Call<LoginResponseModel> call,@NonNull Throwable t) {
 
-                Toast.makeText(LoginActivity.this,"faild",Toast.LENGTH_LONG).show();
+            @Override
+            public void onFailure(@NonNull Call<LoginResponseModel> call, @NonNull Throwable t) {
+
+                Toast.makeText(LoginActivity.this, "failed", Toast.LENGTH_LONG).show();
 
                 progressDialog.dismiss();
             }
         });
     }
-    public boolean emilValidator(String email)
-    {
+
+    public boolean emilValidator(String email) {
         Pattern pattern;
         Matcher matcher;
         final String EMAIL_PATTERN = "^[_A-za-z0-9-]+(\\.[_A-za-z0-9-]+)*@[A-za-z0-9]+(\\.[_A-za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
@@ -139,9 +137,8 @@ public class LoginActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        startActivity(new Intent(LoginActivity.this,DashboardActivity.class));
+        startActivity(new Intent(LoginActivity.this, DashboardActivity.class));
     }
-
 
 
 }
